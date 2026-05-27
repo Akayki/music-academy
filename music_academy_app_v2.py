@@ -643,7 +643,7 @@ def get_absent_consecutive_students():
     conn = sqlite3.connect('music_academy.db')
     
     # Lấy tất cả học viên
-    students_df = pd.read_sql_query("SELECT id, name, instrument, parent_phone FROM students WHERE status = 'active'", conn)
+    students_df = pd.read_sql_query("SELECT id, name, parent_phone FROM students WHERE status = 'active'", conn)
     
     absent_students = []
     for _, student in students_df.iterrows():
@@ -677,7 +677,7 @@ def get_running_out_of_sessions():
     conn = sqlite3.connect('music_academy.db')
     
     df = pd.read_sql_query(
-        "SELECT id, name, instrument, sessions_total, sessions_attended, parent_phone FROM students WHERE status = 'active' AND (sessions_total - sessions_attended) <= 3 ORDER BY (sessions_total - sessions_attended)",
+        "SELECT id, name, parent_phone FROM students WHERE status = 'active'",
         conn
     )
     

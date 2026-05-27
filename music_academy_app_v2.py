@@ -1771,6 +1771,7 @@ with tab4c:
     st.markdown("---")
     st.subheader("📊 Danh sách đăng kí")
     
+    conn = sqlite3.connect('music_academy.db')
     all_enrollments = pd.read_sql_query('''
         SELECT 
             se.id,
@@ -1786,7 +1787,8 @@ with tab4c:
         JOIN students s ON se.student_id = s.id
         WHERE se.status = 'active'
         ORDER BY s.name, se.created_date DESC
-    ''', sqlite3.connect('music_academy.db'))
+    ''', conn)
+    conn.close()
     
     if all_enrollments.empty:
         st.info("Chưa có đăng kí nào")

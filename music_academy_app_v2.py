@@ -86,6 +86,7 @@ def init_db():
         sessions_attended INTEGER DEFAULT 0,
         parent_name TEXT,
         parent_phone TEXT,
+        address TEXT,
         status TEXT DEFAULT 'active'
     )''')
     
@@ -100,6 +101,11 @@ def init_db():
     except sqlite3.OperationalError:
         pass  # Cột đã tồn tại
     
+    try:
+        c.execute("ALTER TABLE students ADD COLUMN address TEXT")
+    except sqlite3.OperationalError:
+        pass  # Cột đã tồn tại
+    
     # ⭐ NEW: Bảng ghi danh môn học (1 học viên → nhiều môn)
     c.execute('''CREATE TABLE IF NOT EXISTS student_enrollments (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -109,6 +115,7 @@ def init_db():
         package_id TEXT NOT NULL,
         sessions_total INTEGER NOT NULL,
         sessions_attended INTEGER DEFAULT 0,
+        payment_status TEXT DEFAULT 'unpaid',
         start_date TEXT,
         status TEXT DEFAULT 'active',
         created_date TEXT,
@@ -216,7 +223,7 @@ DAYS_OF_WEEK = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'
 TIME_SLOTS = ['08:00', '09:00', '10:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00']
 
 # Database functions
-def add_student(name, phone, instrument, package_id, teacher, parent_name, parent_phone):
+def add_student(name, phone, instrument, package_id, teacher, parent_name, parent_phone, address):
     conn = sqlite3.connect('music_academy.db')
     c = conn.cursor()
     
@@ -232,14 +239,14 @@ def add_student(name, phone, instrument, package_id, teacher, parent_name, paren
         package = PACKAGE_TYPES.get(package_id, {})
         sessions = package.get('sessions', 0)
     
-    c.execute('''INSERT INTO students (name, phone, instrument, package_id, teacher, start_date, sessions_total, parent_name, parent_phone)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)''',
-             (name, phone, instrument, package_id, teacher, date.today().isoformat(), sessions, parent_name, parent_phone))
+    c.execute('''INSERT INTO students (name, phone, instrument, package_id, teacher, start_date, sessions_total, parent_name, parent_phone, address)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+             (name, phone, instrument, package_id, teacher, date.today().isoformat(), sessions, parent_name, parent_phone, address))
     
     conn.commit()
     conn.close()
 
-def update_student(student_id, name, phone, instrument, package_id, teacher, parent_name, parent_phone):
+def update_student(student_id, name, phone, instrument, package_id, teacher, parent_name, parent_phone, address):
     conn = sqlite3.connect('music_academy.db')
     c = conn.cursor()
     
@@ -256,9 +263,9 @@ def update_student(student_id, name, phone, instrument, package_id, teacher, par
         sessions = package.get('sessions', 0)
     
     c.execute('''UPDATE students 
-                 SET name = ?, phone = ?, instrument = ?, package_id = ?, teacher = ?, sessions_total = ?, parent_name = ?, parent_phone = ?
+                 SET name = ?, phone = ?, instrument = ?, package_id = ?, teacher = ?, sessions_total = ?, parent_name = ?, parent_phone = ?, address = ?
                  WHERE id = ?''',
-             (name, phone, instrument, package_id, teacher, sessions, parent_name, parent_phone, student_id))
+             (name, phone, instrument, package_id, teacher, sessions, parent_name, parent_phone, address, student_id))
     
     conn.commit()
     conn.close()
@@ -282,7 +289,7 @@ def get_all_students():
     return df
 
 # ⭐ NEW: ENROLLMENT FUNCTIONS
-def add_enrollment(student_id, instrument, teacher, package_id):
+def add_enrollment(student_id, instrument, teacher, package_id, payment_status='unpaid'):
     """Thêm môn học cho học viên"""
     conn = sqlite3.connect('music_academy.db')
     c = conn.cursor()
@@ -298,9 +305,9 @@ def add_enrollment(student_id, instrument, teacher, package_id):
     
     c.execute('''
         INSERT INTO student_enrollments 
-        (student_id, instrument, teacher, package_id, sessions_total, sessions_attended, start_date, status, created_date)
-        VALUES (?, ?, ?, ?, ?, 0, ?, 'active', ?)
-    ''', (student_id, instrument, teacher, package_id, sessions, start_date, created_date))
+        (student_id, instrument, teacher, package_id, sessions_total, sessions_attended, payment_status, start_date, status, created_date)
+        VALUES (?, ?, ?, ?, ?, 0, ?, ?, 'active', ?)
+    ''', (student_id, instrument, teacher, package_id, sessions, payment_status, start_date, created_date))
     
     conn.commit()
     conn.close()
@@ -844,12 +851,13 @@ init_db()
 st.title("🎵 Quản lý học viện âm nhạc")
 
 # Tabs
-tab1, tab2, tab3, tab4, tab4b, tab5, tab6, tab7 = st.tabs([
+tab1, tab2, tab3, tab4, tab4b, tab4c, tab5, tab6, tab7 = st.tabs([
     "📊 Tổng quan",
     "👥 Học viên",
     "👨‍🏫 Giáo viên",
     "📅 Lịch học",
     "🎓 Học thử",
+    "📋 Đăng kí môn học",
     "📝 Đăng ký lịch",
     "✅ Điểm danh",
     "🔄 Bù học"
@@ -1147,11 +1155,13 @@ with tab2:
             with col2:
                 parent_phone = st.text_input("SĐT phụ huynh *")
             
+            address = st.text_input("📍 Địa chỉ học viên", placeholder="Ví dụ: 123 Nguyễn Huệ, Quận 1, TPHCM")
+            
             col1, col2 = st.columns(2)
             with col1:
                 if st.form_submit_button("Thêm học viên", use_container_width=True):
                     if name and selected_package and teacher and parent_name and parent_phone:
-                        add_student(name, phone, instrument, selected_package, teacher, parent_name, parent_phone)
+                        add_student(name, phone, instrument, selected_package, teacher, parent_name, parent_phone, address)
                         st.success(f"Đã thêm học viên {name}!")
                         st.session_state.show_add_student = False
                         st.rerun()
@@ -1705,6 +1715,120 @@ with tab4:
                         if st.button("Hủy", use_container_width=True):
                             st.session_state.show_delete_schedule_confirm = False
                             st.rerun()
+
+# Tab 4c: Đăng kí môn học
+with tab4c:
+    st.header("📋 Đăng kí môn học")
+    st.markdown("Đăng kí các môn học cho học viên + quản lý trạng thái học phí")
+    
+    st.markdown("---")
+    st.subheader("➕ Đăng kí môn mới")
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        students_df = get_all_students()
+        student_names = students_df['name'].tolist() if not students_df.empty else []
+        
+        if student_names:
+            selected_student_name = st.selectbox("Chọn học viên *", student_names, key="enroll_student_select")
+            selected_student = students_df[students_df['name'] == selected_student_name].iloc[0]
+            selected_student_id = selected_student['id']
+        else:
+            st.warning("⚠️ Chưa có học viên nào. Vui lòng thêm học viên trước!")
+            selected_student_id = None
+        
+        instrument = st.selectbox("Môn học *", INSTRUMENTS, key="enroll_instrument")
+    
+    with col2:
+        # Package selection
+        package_options = []
+        for pid, pkg in PACKAGE_TYPES.items():
+            label = f"{pkg['label']} ({pkg['desc']})"
+            package_options.append((label, pid))
+        
+        selected_package_label = st.selectbox("Gói học phí *", [p[0] for p in package_options], key="enroll_package")
+        selected_package_id = [p[1] for p in package_options if p[0] == selected_package_label][0]
+        
+        teachers_df = get_all_teachers()
+        teacher_names = teachers_df['name'].tolist() if not teachers_df.empty else []
+        selected_teacher = st.selectbox("Giáo viên *", teacher_names, key="enroll_teacher") if teacher_names else None
+    
+    # Payment status
+    col1, col2 = st.columns(2)
+    with col1:
+        payment_status = st.selectbox("Trạng thái học phí *", ["Chưa nộp", "Đã nộp"], key="enroll_payment")
+        payment_status_code = "paid" if payment_status == "Đã nộp" else "unpaid"
+    
+    with col2:
+        if st.button("📝 Đăng kí môn", use_container_width=True, key="enroll_submit"):
+            if selected_student_id and selected_teacher and selected_package_id:
+                add_enrollment(selected_student_id, instrument, selected_teacher, selected_package_id, payment_status_code)
+                st.success(f"✅ Đăng kí {instrument} cho {selected_student_name} thành công!")
+                st.rerun()
+            else:
+                st.error("Vui lòng chọn đủ thông tin!")
+    
+    st.markdown("---")
+    st.subheader("📊 Danh sách đăng kí")
+    
+    all_enrollments = pd.read_sql_query('''
+        SELECT 
+            se.id,
+            s.name as student_name,
+            se.instrument,
+            se.teacher,
+            se.package_id,
+            se.sessions_total,
+            se.sessions_attended,
+            se.payment_status,
+            se.start_date
+        FROM student_enrollments se
+        JOIN students s ON se.student_id = s.id
+        WHERE se.status = 'active'
+        ORDER BY s.name, se.created_date DESC
+    ''', sqlite3.connect('music_academy.db'))
+    
+    if all_enrollments.empty:
+        st.info("Chưa có đăng kí nào")
+    else:
+        # Filter options
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            filter_student = st.selectbox("Filter học viên", ["Tất cả"] + all_enrollments['student_name'].unique().tolist())
+        with col2:
+            filter_status = st.selectbox("Filter học phí", ["Tất cả", "Đã nộp", "Chưa nộp"])
+        with col3:
+            filter_instrument = st.selectbox("Filter môn", ["Tất cả"] + all_enrollments['instrument'].unique().tolist())
+        
+        # Apply filters
+        filtered = all_enrollments.copy()
+        if filter_student != "Tất cả":
+            filtered = filtered[filtered['student_name'] == filter_student]
+        if filter_status != "Tất cả":
+            status_code = "paid" if filter_status == "Đã nộp" else "unpaid"
+            filtered = filtered[filtered['payment_status'] == status_code]
+        if filter_instrument != "Tất cả":
+            filtered = filtered[filtered['instrument'] == filter_instrument]
+        
+        # Display
+        for idx, enrollment in filtered.iterrows():
+            payment_icon = "💳 ✅ Đã nộp" if enrollment['payment_status'] == "paid" else "⏳ Chưa nộp"
+            package_info = PACKAGE_TYPES.get(enrollment['package_id'], {}).get('label', enrollment['package_id'])
+            
+            col1, col2, col3, col4 = st.columns([2, 1.5, 1.5, 1])
+            with col1:
+                st.markdown(f"**{enrollment['student_name']}** • {enrollment['instrument']}")
+                st.caption(f"GV: {enrollment['teacher']} | Gói: {package_info}")
+            with col2:
+                progress = enrollment['sessions_attended'] / enrollment['sessions_total'] if enrollment['sessions_total'] > 0 else 0
+                st.progress(progress)
+                st.caption(f"{enrollment['sessions_attended']}/{enrollment['sessions_total']} buổi")
+            with col3:
+                st.markdown(f"<div style='text-align:center'>{payment_icon}</div>", unsafe_allow_html=True)
+            with col4:
+                if st.button("Xóa", key=f"delete_enroll_{enrollment['id']}"):
+                    delete_enrollment(enrollment['id'])
+                    st.rerun()
 
 # Tab 4b: Học viên học thử
 with tab4b:

@@ -1103,50 +1103,7 @@ with tab2:
             
             name = st.text_input("Họ tên học viên *")
             phone = st.text_input("Số điện thoại")
-            instrument = st.selectbox("Môn học *", INSTRUMENTS)
             
-            st.markdown("**Gói học phí ***")
-            package_options = []
-            for pid, pkg in PACKAGE_TYPES.items():
-                label = f"{pkg['label']} ({pkg['desc']})"
-                package_options.append((label, pid))
-            
-            package_groups = {
-                "Học nhóm - 2 buổi/tuần": [p for p in package_options if '-private' not in p[1] and PACKAGE_TYPES[p[1]]['frequency'] == 2],
-                "Học nhóm - 3 buổi/tuần": [p for p in package_options if '-private' not in p[1] and PACKAGE_TYPES[p[1]]['frequency'] == 3],
-                "Học kèm - 2 buổi/tuần": [p for p in package_options if '-private' in p[1] and PACKAGE_TYPES[p[1]]['frequency'] == 2],
-                "Học kèm - 3 buổi/tuần": [p for p in package_options if '-private' in p[1] and PACKAGE_TYPES[p[1]]['frequency'] == 3],
-            }
-            
-            selected_package = None
-            for group_name, packages in package_groups.items():
-                st.markdown(f"*{group_name}*")
-                cols = st.columns(3)
-                for idx, (label, pid) in enumerate(packages):
-                    with cols[idx % 3]:
-                        if st.checkbox(label, key=f"pkg_{pid}"):
-                            selected_package = pid
-            
-            # Tùy chọn số buổi
-            st.markdown("---")
-            with st.expander("🎁 Tùy chọn số buổi (Nhập số buổi tùy ý)"):
-                st.markdown("Tick vào để sử dụng tùy chọn nhập số buổi tùy ý")
-                use_custom_sessions = st.checkbox("Sử dụng tùy chọn số buổi", value=False, key="add_custom_sessions")
-                custom_sessions = st.number_input("Số buổi:", min_value=1, max_value=999, value=10, step=1, key="add_sessions_input")
-                
-                if use_custom_sessions:
-                    selected_package = f"custom_{custom_sessions}"
-            
-            teachers_df = get_all_teachers()
-            teacher_names = teachers_df['name'].tolist() if not teachers_df.empty else []
-            
-            if not teacher_names:
-                st.warning("⚠️ Chưa có giáo viên nào. Vui lòng thêm giáo viên trước!")
-                teacher = None
-            else:
-                teacher = st.selectbox("Giáo viên phụ trách *", options=teacher_names)
-            
-            st.markdown("---")
             st.markdown("**👨‍👩‍👧 Thông tin phụ huynh**")
             
             col1, col2 = st.columns(2)
@@ -1157,14 +1114,28 @@ with tab2:
             
             address = st.text_input("📍 Địa chỉ học viên", placeholder="Ví dụ: 123 Nguyễn Huệ, Quận 1, TPHCM")
             
+            st.info("💡 Sau khi thêm học viên, bạn sẽ đăng kí môn học ở tab '📋 Đăng kí môn học'")
+            
             col1, col2 = st.columns(2)
             with col1:
                 if st.form_submit_button("Thêm học viên", use_container_width=True):
-                    if name and selected_package and teacher and parent_name and parent_phone:
-                        add_student(name, phone, instrument, selected_package, teacher, parent_name, parent_phone, address)
-                        st.success(f"Đã thêm học viên {name}!")
-                        st.session_state.show_add_student = False
-                        st.rerun()
+                    if name and parent_name and parent_phone:
+                        try:
+                            # Add student without instrument/package/teacher
+                            conn = sqlite3.connect('music_academy.db')
+                            c = conn.cursor()
+                            c.execute('''
+                                INSERT INTO students (name, phone, parent_name, parent_phone, address, status)
+                                VALUES (?, ?, ?, ?, ?, 'active')
+                            ''', (name, phone, parent_name, parent_phone, address))
+                            conn.commit()
+                            conn.close()
+                            
+                            st.success(f"✅ Đã thêm học viên {name}!")
+                            st.session_state.show_add_student = False
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"❌ Lỗi: {str(e)[:200]}")
                     else:
                         st.error("Vui lòng điền đầy đủ thông tin bắt buộc (*)!")
             

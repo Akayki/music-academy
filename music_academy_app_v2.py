@@ -1770,54 +1770,54 @@ with tab4c:
     except Exception as e:
         st.warning(f"⚠️ Không thể tải danh sách: {str(e)[:100]}")
         all_enrollments = pd.DataFrame()
+    
+    if all_enrollments.empty:
+        st.info("Chưa có đăng kí nào")
+    else:
+        # Filter options
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            filter_student = st.selectbox("Filter học viên", ["Tất cả"] + all_enrollments['student_name'].unique().tolist())
+        with col2:
+            filter_status = st.selectbox("Filter học phí", ["Tất cả", "Đã nộp", "Chưa nộp"])
+        with col3:
+            filter_instrument = st.selectbox("Filter môn", ["Tất cả"] + all_enrollments['instrument'].unique().tolist())
         
-        if all_enrollments.empty:
-            st.info("Chưa có đăng kí nào")
-        else:
-            # Filter options
-            col1, col2, col3 = st.columns(3)
+        # Apply filters
+        filtered = all_enrollments.copy()
+        if filter_student != "Tất cả":
+            filtered = filtered[filtered['student_name'] == filter_student]
+        if filter_status != "Tất cả":
+            status_code = "paid" if filter_status == "Đã nộp" else "unpaid"
+            filtered = filtered[filtered['payment_status'] == status_code]
+        if filter_instrument != "Tất cả":
+            filtered = filtered[filtered['instrument'] == filter_instrument]
+        
+        # Display
+        for idx, enrollment in filtered.iterrows():
+            payment_icon = "💳 ✅ Đã nộp" if enrollment['payment_status'] == "paid" else "⏳ Chưa nộp"
+            package_info = PACKAGE_TYPES.get(enrollment['package_id'], {}).get('label', enrollment['package_id'])
+            
+            col1, col2, col3, col4 = st.columns([2, 1.5, 1.5, 1])
             with col1:
-                filter_student = st.selectbox("Filter học viên", ["Tất cả"] + all_enrollments['student_name'].unique().tolist())
+                st.markdown(f"**{enrollment['student_name']}** • {enrollment['instrument']}")
+                st.caption(f"GV: {enrollment['teacher']} | Gói: {package_info}")
+            
             with col2:
-                filter_status = st.selectbox("Filter học phí", ["Tất cả", "Đã nộp", "Chưa nộp"])
+                progress = enrollment['sessions_attended'] / enrollment['sessions_total'] if enrollment['sessions_total'] > 0 else 0
+                st.progress(progress)
+                st.caption(f"{enrollment['sessions_attended']}/{enrollment['sessions_total']} buổi")
+            
             with col3:
-                filter_instrument = st.selectbox("Filter môn", ["Tất cả"] + all_enrollments['instrument'].unique().tolist())
+                st.markdown(f"<div style='text-align:center'>{payment_icon}</div>", unsafe_allow_html=True)
             
-            # Apply filters
-            filtered = all_enrollments.copy()
-            if filter_student != "Tất cả":
-                filtered = filtered[filtered['student_name'] == filter_student]
-            if filter_status != "Tất cả":
-                status_code = "paid" if filter_status == "Đã nộp" else "unpaid"
-                filtered = filtered[filtered['payment_status'] == status_code]
-            if filter_instrument != "Tất cả":
-                filtered = filtered[filtered['instrument'] == filter_instrument]
-            
-            # Display
-            for idx, enrollment in filtered.iterrows():
-                payment_icon = "💳 ✅ Đã nộp" if enrollment['payment_status'] == "paid" else "⏳ Chưa nộp"
-                package_info = PACKAGE_TYPES.get(enrollment['package_id'], {}).get('label', enrollment['package_id'])
-                
-                col1, col2, col3, col4 = st.columns([2, 1.5, 1.5, 1])
-                with col1:
-                    st.markdown(f"**{enrollment['student_name']}** • {enrollment['instrument']}")
-                    st.caption(f"GV: {enrollment['teacher']} | Gói: {package_info}")
-                
-                with col2:
-                    progress = enrollment['sessions_attended'] / enrollment['sessions_total'] if enrollment['sessions_total'] > 0 else 0
-                    st.progress(progress)
-                    st.caption(f"{enrollment['sessions_attended']}/{enrollment['sessions_total']} buổi")
-                
-                with col3:
-                    st.markdown(f"<div style='text-align:center'>{payment_icon}</div>", unsafe_allow_html=True)
-                
-                with col4:
-                    if st.button("Xóa", key=f"delete_enroll_{enrollment['id']}"):
-                        try:
-                            delete_enrollment(enrollment['id'])
-                            st.rerun()
-                        except Exception as e:
-                            st.error(f"❌ Lỗi xóa: {str(e)[:100]}")
+            with col4:
+                if st.button("Xóa", key=f"delete_enroll_{enrollment['id']}"):
+                    try:
+                        delete_enrollment(enrollment['id'])
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"❌ Lỗi xóa: {str(e)[:100]}")
 
 # Tab 4b: Học viên học thử
 with tab4b:

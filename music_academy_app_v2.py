@@ -1134,6 +1134,24 @@ with tab2:
     
     # Hiển thị danh sách học viên
     st.markdown("---")
+    
+    # TEST BUTTON
+    if st.button("🧪 Test: Insert học viên TEST"):
+        conn = sqlite3.connect('music_academy.db')
+        c = conn.cursor()
+        try:
+            c.execute('''
+                INSERT INTO students (name, phone, parent_name, parent_phone, address, status)
+                VALUES (?, ?, ?, ?, ?, 'active')
+            ''', ('TEST Student', '0123456789', 'TEST Parent', '0987654321', 'TEST Address'))
+            conn.commit()
+            st.success(f"✅ Rowcount: {c.rowcount}")
+        except Exception as e:
+            st.error(f"❌ Error: {str(e)}")
+        finally:
+            conn.close()
+    
+    st.markdown("---")
     students = get_all_students()
     
     # DEBUG

@@ -73,38 +73,22 @@ def init_db():
     conn = sqlite3.connect('music_academy.db')
     c = conn.cursor()
     
-    # Bảng học viên
+    # ⭐ DROP OLD TABLE & START FRESH
+    try:
+        c.execute("DROP TABLE IF EXISTS students")
+    except:
+        pass
+    
+    # Bảng học viên (CLEAN - NO instrument/package/teacher)
     c.execute('''CREATE TABLE IF NOT EXISTS students (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
         phone TEXT,
-        instrument TEXT NOT NULL,
-        package_id TEXT NOT NULL,
-        teacher TEXT NOT NULL,
-        start_date TEXT NOT NULL,
-        sessions_total INTEGER NOT NULL,
-        sessions_attended INTEGER DEFAULT 0,
         parent_name TEXT,
         parent_phone TEXT,
         address TEXT,
         status TEXT DEFAULT 'active'
     )''')
-    
-    # Thêm cột nếu chưa có (migration)
-    try:
-        c.execute("ALTER TABLE students ADD COLUMN parent_name TEXT")
-    except sqlite3.OperationalError:
-        pass  # Cột đã tồn tại
-    
-    try:
-        c.execute("ALTER TABLE students ADD COLUMN parent_phone TEXT")
-    except sqlite3.OperationalError:
-        pass  # Cột đã tồn tại
-    
-    try:
-        c.execute("ALTER TABLE students ADD COLUMN address TEXT")
-    except sqlite3.OperationalError:
-        pass  # Cột đã tồn tại
     
     # ⭐ NEW: Bảng ghi danh môn học (1 học viên → nhiều môn)
     c.execute('''CREATE TABLE IF NOT EXISTS student_enrollments (
@@ -1121,13 +1105,13 @@ with tab2:
                 if st.form_submit_button("Thêm học viên", use_container_width=True):
                     if name and parent_name and parent_phone:
                         try:
-                            # Add student without instrument/package/teacher
+                            # Add student - clean simple insert
                             conn = sqlite3.connect('music_academy.db')
                             c = conn.cursor()
                             c.execute('''
-                                INSERT INTO students (name, phone, parent_name, parent_phone, address, instrument, package_id, teacher, status)
-                                VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active')
-                            ''', (name, phone, parent_name, parent_phone, address, 'TBD', 'TBD', 'TBD'))
+                                INSERT INTO students (name, phone, parent_name, parent_phone, address, status)
+                                VALUES (?, ?, ?, ?, ?, 'active')
+                            ''', (name, phone, parent_name, parent_phone, address))
                             conn.commit()
                             conn.close()
                             

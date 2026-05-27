@@ -1786,7 +1786,7 @@ with tab4c:
         FROM student_enrollments se
         JOIN students s ON se.student_id = s.id
         WHERE se.status = 'active'
-        ORDER BY s.name, se.created_date DESC
+        ORDER BY s.name, se.id DESC
     ''', conn)
     conn.close()
     

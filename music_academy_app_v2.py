@@ -1125,9 +1125,9 @@ with tab2:
                             conn = sqlite3.connect('music_academy.db')
                             c = conn.cursor()
                             c.execute('''
-                                INSERT INTO students (name, phone, parent_name, parent_phone, address, status)
-                                VALUES (?, ?, ?, ?, ?, 'active')
-                            ''', (name, phone, parent_name, parent_phone, address))
+                                INSERT INTO students (name, phone, parent_name, parent_phone, address, instrument, package_id, teacher, status)
+                                VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active')
+                            ''', (name, phone, parent_name, parent_phone, address, 'TBD', 'TBD', 'TBD'))
                             conn.commit()
                             conn.close()
                             

@@ -1474,21 +1474,36 @@ with tab4:
                 col1, col2 = st.columns(2)
                 with col1:
                     day = st.selectbox("Thứ trong tuần *", DAYS_OF_WEEK)
-                    time = st.selectbox("Giờ học *", TIME_SLOTS)
+                    # Giờ học với tùy chọn nhập tự do
+                    time_option = st.selectbox("Giờ học *", TIME_SLOTS + ["🔹 Khác (Nhập tự do)"], key="time_option_add")
                 
                 with col2:
                     inst = st.selectbox("Môn học *", INSTRUMENTS)
                     capacity = st.number_input("Sức chứa *", min_value=1, max_value=10, value=4)
                 
+                # Nếu chọn "Khác", hiện input để nhập giờ tùy ý
+                if time_option == "🔹 Khác (Nhập tự do)":
+                    custom_time = st.text_input("Nhập giờ (HH:MM)", placeholder="06:15", key="custom_time_add", help="Ví dụ: 06:15, 06:10, 17:45")
+                    time = custom_time if custom_time else ""
+                else:
+                    time = time_option
+                
                 sch_teacher = st.selectbox("Giáo viên *", teacher_names)
+                
+                # Validation cho custom time
+                if time_option == "🔹 Khác (Nhập tự do)" and not time:
+                    st.error("⚠️ Vui lòng nhập giờ học (HH:MM)!")
                 
                 col1, col2 = st.columns(2)
                 with col1:
                     if st.form_submit_button("Thêm lịch học", use_container_width=True):
-                        add_schedule(day, time, inst, sch_teacher, capacity)
-                        st.success("Đã thêm lịch học!")
-                        st.session_state.show_add_schedule = False
-                        st.rerun()
+                        if time:
+                            add_schedule(day, time, inst, sch_teacher, capacity)
+                            st.success("Đã thêm lịch học!")
+                            st.session_state.show_add_schedule = False
+                            st.rerun()
+                        else:
+                            st.error("Vui lòng chọn hoặc nhập giờ học!")
                 
                 with col2:
                     if st.form_submit_button("Hủy", use_container_width=True):
@@ -1557,7 +1572,21 @@ with tab4:
                         col1, col2 = st.columns(2)
                         with col1:
                             edit_day = st.selectbox("Thứ *", DAYS_OF_WEEK, index=DAYS_OF_WEEK.index(schedule_to_edit['day_of_week']), key="edit_day")
-                            edit_time = st.selectbox("Giờ *", TIME_SLOTS, index=TIME_SLOTS.index(schedule_to_edit['time_slot']), key="edit_time")
+                            
+                            # Giờ học với tùy chọn nhập tự do
+                            time_options = TIME_SLOTS + ["🔹 Khác (Nhập tự do)"]
+                            if schedule_to_edit['time_slot'] in TIME_SLOTS:
+                                time_index = time_options.index(schedule_to_edit['time_slot'])
+                            else:
+                                time_index = len(TIME_SLOTS)  # "Khác" position
+                            
+                            edit_time_option = st.selectbox("Giờ *", time_options, index=time_index, key="edit_time_option")
+                            
+                            # Nếu chọn "Khác", hiện input để nhập giờ tùy ý
+                            if edit_time_option == "🔹 Khác (Nhập tự do)":
+                                edit_time = st.text_input("Nhập giờ (HH:MM)", value=schedule_to_edit['time_slot'], placeholder="06:15", key="edit_custom_time", help="Ví dụ: 06:15, 06:10, 17:45")
+                            else:
+                                edit_time = edit_time_option
                         
                         with col2:
                             edit_inst = st.selectbox("Môn *", INSTRUMENTS, index=INSTRUMENTS.index(schedule_to_edit['instrument']), key="edit_inst")
@@ -1570,16 +1599,22 @@ with tab4:
                             st.warning("⚠️ Không có giáo viên nào trong hệ thống!")
                             edit_teacher = None
                         
+                        # Validation cho custom time
+                        if edit_time_option == "🔹 Khác (Nhập tự do)" and not edit_time:
+                            st.error("⚠️ Vui lòng nhập giờ học (HH:MM)!")
+                        
                         col1, col2 = st.columns(2)
                         with col1:
                             if st.form_submit_button("Cập nhật", use_container_width=True):
-                                if edit_teacher:
+                                if edit_teacher and edit_time:
                                     update_schedule(st.session_state.edit_schedule_id, edit_day, edit_time, edit_inst, edit_teacher, edit_capacity)
                                     st.success("Đã cập nhật lịch học!")
                                     st.session_state.show_edit_schedule = False
                                     st.rerun()
-                                else:
+                                elif not edit_teacher:
                                     st.error("Vui lòng chọn giáo viên!")
+                                else:
+                                    st.error("Vui lòng nhập hoặc chọn giờ học!")
                         
                         with col2:
                             if st.form_submit_button("Hủy", use_container_width=True):

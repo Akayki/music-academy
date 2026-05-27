@@ -1474,16 +1474,16 @@ with tab4:
                 col1, col2 = st.columns(2)
                 with col1:
                     day = st.selectbox("Thứ trong tuần *", DAYS_OF_WEEK)
-                    # Giờ học với tùy chọn nhập tự do
+                    # Giờ học - chọn cố định
                     time_option = st.selectbox("Giờ học *", TIME_SLOTS + ["🔹 Khác (Nhập tự do)"], key="time_option_add")
                 
                 with col2:
                     inst = st.selectbox("Môn học *", INSTRUMENTS)
                     capacity = st.number_input("Sức chứa *", min_value=1, max_value=10, value=4)
                 
-                # Nếu chọn "Khác", hiện input để nhập giờ tùy ý
+                # Luôn render text input cho giờ tùy ý (enable/disable tùy chọn)
                 if time_option == "🔹 Khác (Nhập tự do)":
-                    custom_time = st.text_input("Nhập giờ (HH:MM)", placeholder="06:15", key="custom_time_add", help="Ví dụ: 06:15, 06:10, 17:45")
+                    custom_time = st.text_input("Nhập giờ (HH:MM) *", placeholder="06:15", key="custom_time_add", help="Ví dụ: 06:15, 06:10, 17:45")
                     time = custom_time if custom_time else ""
                 else:
                     time = time_option
@@ -1582,9 +1582,9 @@ with tab4:
                             
                             edit_time_option = st.selectbox("Giờ *", time_options, index=time_index, key="edit_time_option")
                             
-                            # Nếu chọn "Khác", hiện input để nhập giờ tùy ý
+                            # Luôn render text input cho giờ tùy ý
                             if edit_time_option == "🔹 Khác (Nhập tự do)":
-                                edit_time = st.text_input("Nhập giờ (HH:MM)", value=schedule_to_edit['time_slot'], placeholder="06:15", key="edit_custom_time", help="Ví dụ: 06:15, 06:10, 17:45")
+                                edit_time = st.text_input("Nhập giờ (HH:MM) *", value=schedule_to_edit['time_slot'], placeholder="06:15", key="edit_custom_time", help="Ví dụ: 06:15, 06:10, 17:45")
                             else:
                                 edit_time = edit_time_option
                         

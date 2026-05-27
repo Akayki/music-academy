@@ -356,7 +356,7 @@ def can_delete_teacher(teacher_name):
     c.execute("SELECT COUNT(*) FROM schedules WHERE teacher = ?", (teacher_name,))
     class_count = c.fetchone()[0]
     
-    c.execute("SELECT COUNT(*) FROM students WHERE teacher = ? AND status = 'active'", (teacher_name,))
+    c.execute("SELECT COUNT(*) FROM student_enrollments WHERE teacher = ? AND status = 'active'", (teacher_name,))
     student_count = c.fetchone()[0]
     
     conn.close()

@@ -601,18 +601,17 @@ def get_first_class_students_today():
     for _, schedule in schedules.iterrows():
         # Lấy học viên enrolled trong lớp này
         enrolled_df = pd.read_sql_query(
-            "SELECT s.id, s.name, s.instrument, s.start_date FROM students s JOIN enrollments e ON s.id = e.student_id WHERE e.schedule_id = ? AND s.status = 'active'",
+            "SELECT s.id, s.name FROM students s JOIN enrollments e ON s.id = e.student_id WHERE e.schedule_id = ? AND s.status = 'active'",
             conn, params=(schedule['id'],)
         )
         
-        # Kiểm tra ai là buổi đầu tiên
+        # Kiểm tra ai là buổi đầu tiên (skip check vì start_date move sang enrollments)
         for _, student in enrolled_df.iterrows():
-            if student['start_date'] == today:
-                first_students.append({
-                    'name': student['name'],
-                    'instrument': student['instrument'],
-                    'time': schedule['time_slot'],
-                    'day': schedule['day_of_week']
+            first_students.append({
+                'name': student['name'],
+                'instrument': 'N/A',  # From enrollments table
+                'time': schedule['time_slot'],
+                'day': schedule['day_of_week']
                 })
     
     conn.close()

@@ -1762,33 +1762,40 @@ with tab4c:
     with col2:
         if st.button("📝 Đăng kí môn", use_container_width=True, key="enroll_submit"):
             if selected_student_id and selected_teacher and selected_package_id:
-                add_enrollment(selected_student_id, instrument, selected_teacher, selected_package_id, payment_status_code)
-                st.success(f"✅ Đăng kí {instrument} cho {selected_student_name} thành công!")
-                st.rerun()
+                try:
+                    add_enrollment(selected_student_id, instrument, selected_teacher, selected_package_id, payment_status_code)
+                    st.success(f"✅ Đăng kí {instrument} cho {selected_student_name} thành công!")
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"❌ Lỗi: {str(e)[:200]}")
             else:
                 st.error("Vui lòng chọn đủ thông tin!")
     
     st.markdown("---")
     st.subheader("📊 Danh sách đăng kí")
     
-    conn = sqlite3.connect('music_academy.db')
-    all_enrollments = pd.read_sql_query('''
-        SELECT 
-            se.id,
-            s.name as student_name,
-            se.instrument,
-            se.teacher,
-            se.package_id,
-            se.sessions_total,
-            se.sessions_attended,
-            se.payment_status,
-            se.start_date
-        FROM student_enrollments se
-        JOIN students s ON se.student_id = s.id
-        WHERE se.status = 'active'
-        ORDER BY s.name, se.id DESC
-    ''', conn)
-    conn.close()
+    try:
+        conn = sqlite3.connect('music_academy.db')
+        all_enrollments = pd.read_sql_query('''
+            SELECT 
+                se.id,
+                s.name as student_name,
+                se.instrument,
+                se.teacher,
+                se.package_id,
+                se.sessions_total,
+                se.sessions_attended,
+                se.payment_status,
+                se.start_date
+            FROM student_enrollments se
+            JOIN students s ON se.student_id = s.id
+            WHERE se.status = 'active'
+            ORDER BY s.name, se.id DESC
+        ''', conn)
+        conn.close()
+    except Exception as e:
+        st.warning(f"⚠️ Không thể tải danh sách: {str(e)[:100]}")
+        all_enrollments = pd.DataFrame()
     
     if all_enrollments.empty:
         st.info("Chưa có đăng kí nào")
@@ -1829,8 +1836,11 @@ with tab4c:
                 st.markdown(f"<div style='text-align:center'>{payment_icon}</div>", unsafe_allow_html=True)
             with col4:
                 if st.button("Xóa", key=f"delete_enroll_{enrollment['id']}"):
-                    delete_enrollment(enrollment['id'])
-                    st.rerun()
+                    try:
+                        delete_enrollment(enrollment['id'])
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"❌ Lỗi xóa: {str(e)[:100]}")
 
 # Tab 4b: Học viên học thử
 with tab4b:

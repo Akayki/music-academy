@@ -1144,8 +1144,7 @@ with tab2:
         # Apply filters
         if search:
             students = students[
-                students['name'].str.contains(search, case=False) |
-                students['teacher'].str.contains(search, case=False)
+                students['name'].str.contains(search, case=False)
             ]
         
         if filter_instrument != "Tất cả":

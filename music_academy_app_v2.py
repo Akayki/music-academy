@@ -100,6 +100,21 @@ def init_db():
     except sqlite3.OperationalError:
         pass  # Cột đã tồn tại
     
+    # ⭐ NEW: Bảng ghi danh môn học (1 học viên → nhiều môn)
+    c.execute('''CREATE TABLE IF NOT EXISTS student_enrollments (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        student_id INTEGER NOT NULL,
+        instrument TEXT NOT NULL,
+        teacher TEXT NOT NULL,
+        package_id TEXT NOT NULL,
+        sessions_total INTEGER NOT NULL,
+        sessions_attended INTEGER DEFAULT 0,
+        start_date TEXT,
+        status TEXT DEFAULT 'active',
+        created_date TEXT,
+        FOREIGN KEY (student_id) REFERENCES students(id)
+    )''')
+    
     # Bảng giáo viên
     c.execute('''CREATE TABLE IF NOT EXISTS teachers (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -265,6 +280,49 @@ def get_all_students():
     df = pd.read_sql_query("SELECT * FROM students WHERE status = 'active'", conn)
     conn.close()
     return df
+
+# ⭐ NEW: ENROLLMENT FUNCTIONS
+def add_enrollment(student_id, instrument, teacher, package_id):
+    """Thêm môn học cho học viên"""
+    conn = sqlite3.connect('music_academy.db')
+    c = conn.cursor()
+    
+    # Tính số buổi
+    if isinstance(package_id, str) and package_id.startswith('custom_'):
+        sessions = int(package_id.split('_')[1])
+    else:
+        sessions = PACKAGE_TYPES.get(package_id, {}).get('sessions', 0)
+    
+    created_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    start_date = date.today().isoformat()
+    
+    c.execute('''
+        INSERT INTO student_enrollments 
+        (student_id, instrument, teacher, package_id, sessions_total, sessions_attended, start_date, status, created_date)
+        VALUES (?, ?, ?, ?, ?, 0, ?, 'active', ?)
+    ''', (student_id, instrument, teacher, package_id, sessions, start_date, created_date))
+    
+    conn.commit()
+    conn.close()
+
+def get_student_enrollments(student_id):
+    """Lấy tất cả môn của 1 học viên"""
+    conn = sqlite3.connect('music_academy.db')
+    df = pd.read_sql_query(
+        'SELECT * FROM student_enrollments WHERE student_id=? AND status="active" ORDER BY created_date',
+        conn,
+        params=(student_id,)
+    )
+    conn.close()
+    return df
+
+def delete_enrollment(enrollment_id):
+    """Xóa 1 enrollment"""
+    conn = sqlite3.connect('music_academy.db')
+    c = conn.cursor()
+    c.execute('DELETE FROM student_enrollments WHERE id=?', (enrollment_id,))
+    conn.commit()
+    conn.close()
 
 def get_all_teachers():
     conn = sqlite3.connect('music_academy.db')

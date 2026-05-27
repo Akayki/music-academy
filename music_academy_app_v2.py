@@ -1112,13 +1112,18 @@ with tab2:
                                 VALUES (?, ?, ?, ?, ?, 'active')
                             ''', (name, phone, parent_name, parent_phone, address))
                             conn.commit()
-                            conn.close()
                             
-                            st.success(f"✅ Đã thêm học viên {name}!")
+                            # Debug: check rows affected
+                            if c.rowcount > 0:
+                                st.success(f"✅ Đã thêm học viên {name}!")
+                            else:
+                                st.error("❌ Insert không thành công (rowcount=0)")
+                            
+                            conn.close()
                             st.session_state.show_add_student = False
                             st.rerun()
                         except Exception as e:
-                            st.error(f"❌ Lỗi: {str(e)[:200]}")
+                            st.error(f"❌ Lỗi insert: {str(e)[:300]}")
                     else:
                         st.error("Vui lòng điền đầy đủ thông tin bắt buộc (*)!")
             
@@ -1130,6 +1135,9 @@ with tab2:
     # Hiển thị danh sách học viên
     st.markdown("---")
     students = get_all_students()
+    
+    # DEBUG
+    st.caption(f"Debug: {len(students)} học viên")
     
     if students.empty:
         st.info("Chưa có học viên nào. Thêm học viên đầu tiên!")

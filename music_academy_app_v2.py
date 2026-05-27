@@ -1375,7 +1375,8 @@ with tab3:
             c = conn.cursor()
             c.execute("SELECT COUNT(*) FROM schedules WHERE teacher = ?", (teacher['name'],))
             class_count = c.fetchone()[0]
-            c.execute("SELECT COUNT(*) FROM students WHERE teacher = ? AND status = 'active'", (teacher['name'],))
+            # Count from student_enrollments (not students table)
+            c.execute("SELECT COUNT(DISTINCT student_id) FROM student_enrollments WHERE teacher = ? AND status = 'active'", (teacher['name'],))
             student_count = c.fetchone()[0]
             conn.close()
             
